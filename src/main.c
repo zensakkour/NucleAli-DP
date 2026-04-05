@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,7 +46,7 @@ static int parse_int_arg(const char* value, int* out) {
     char* end = NULL;
     errno = 0;
     long v = strtol(value, &end, 10);
-    if (errno != 0 || end == value || *end != '\0' || v < -2147483647L || v > 2147483647L) {
+    if (errno != 0 || end == value || *end != '\0' || v < INT_MIN || v > INT_MAX) {
         return 0;
     }
     *out = (int)v;
@@ -273,6 +274,13 @@ int main(int argc, char** argv) {
     }
 
     txtFile* list = read_all_Fnam(opts.batch_dir, 1000000);
+    if (list == NULL) {
+        fprintf(stderr, "Cannot read batch directory or no .adn files found: %s\n", opts.batch_dir);
+        if (csv_file != NULL) {
+            fclose(csv_file);
+        }
+        return 1;
+    }
     txtFile* current = list;
 
     int success_count = 0;

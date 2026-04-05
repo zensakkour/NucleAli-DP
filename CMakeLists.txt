@@ -42,8 +42,29 @@ target_link_libraries(test_dist_compare PRIVATE alignment_core)
 include(CTest)
 if(BUILD_TESTING)
     add_test(
-        NAME smoke_cli
+        NAME smoke_cli_sol2
         COMMAND align_cli --input ${CMAKE_CURRENT_SOURCE_DIR}/instances/Inst_0000010_7.adn --solver sol2
     )
+
+    add_test(
+        NAME cli_json_single
+        COMMAND align_cli --input ${CMAKE_CURRENT_SOURCE_DIR}/instances/Inst_0000010_7.adn --solver sol2 --json
+    )
+
+    add_test(
+        NAME cli_custom_costs_single
+        COMMAND align_cli --input ${CMAKE_CURRENT_SOURCE_DIR}/instances/Inst_0000010_7.adn --solver sol2 --cost-ins 3 --cost-del 3 --cost-sub-concordant 2 --cost-sub-nonconcordant 5 --json
+    )
+
+    add_test(
+        NAME cli_batch_csv_verify
+        COMMAND align_cli --batch-dir ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/mini_instances --solver sol2 --verify --csv ${CMAKE_CURRENT_BINARY_DIR}/batch_report.csv
+    )
+
+    add_test(
+        NAME cli_batch_invalid_no_adn
+        COMMAND align_cli --batch-dir ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/invalid_batch --solver sol2
+    )
+    set_tests_properties(cli_batch_invalid_no_adn PROPERTIES WILL_FAIL TRUE)
 endif()
 

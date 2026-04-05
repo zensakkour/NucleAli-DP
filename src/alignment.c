@@ -5,7 +5,13 @@
 #define COST_SUB_CONCORDANT g_costs.substitution_concordant
 #define COST_SUB_NON_CONCORDANT g_costs.substitution_non_concordant
 
-static AlignmentCosts g_costs = {C_INS, C_DEL, C_SUB_CONCORDANT, C_SUB_NON_CONCORDANT};
+#if defined(_MSC_VER)
+#define THREAD_LOCAL __declspec(thread)
+#else
+#define THREAD_LOCAL _Thread_local
+#endif
+
+static THREAD_LOCAL AlignmentCosts g_costs = {C_INS, C_DEL, C_SUB_CONCORDANT, C_SUB_NON_CONCORDANT};
 
 static int min2(int a, int b) {
     return (a <= b) ? a : b;
@@ -318,19 +324,40 @@ Align* align_lettre_mot(char x, char* y, int m) {
 }
 
 Align* concatener_alignements(Align* algn_1, Align* algn_2) {
-    algn_1->size = algn_1->size + algn_2->size;
-    algn_1->x = (char*)realloc(algn_1->x, (size_t)algn_1->size + 1);
-    algn_1->y = (char*)realloc(algn_1->y, (size_t)algn_1->size + 1);
-
-    if (algn_1->x == NULL || algn_1->y == NULL) {
-        supprimer_alignement(algn_2);
+    if (algn_1 == NULL) {
+        return algn_2;
+    }
+    if (algn_2 == NULL) {
         return algn_1;
     }
 
-    algn_1->x[algn_1->size] = '\0';
-    algn_1->y[algn_1->size] = '\0';
-    strcat(algn_1->x, algn_2->x);
-    strcat(algn_1->y, algn_2->y);
+    size_t len1 = strlen(algn_1->x);
+    size_t len2 = strlen(algn_2->x);
+    size_t new_len = len1 + len2;
+
+    char* merged_x = (char*)malloc(new_len + 1);
+    char* merged_y = (char*)malloc(new_len + 1);
+    if (merged_x == NULL || merged_y == NULL) {
+        free(merged_x);
+        free(merged_y);
+        supprimer_alignement(algn_1);
+        supprimer_alignement(algn_2);
+        return NULL;
+    }
+
+    memcpy(merged_x, algn_1->x, len1);
+    memcpy(merged_x + len1, algn_2->x, len2);
+    merged_x[new_len] = '\0';
+
+    memcpy(merged_y, algn_1->y, len1);
+    memcpy(merged_y + len1, algn_2->y, len2);
+    merged_y[new_len] = '\0';
+
+    free(algn_1->x);
+    free(algn_1->y);
+    algn_1->x = merged_x;
+    algn_1->y = merged_y;
+    algn_1->size = (int)new_len;
 
     supprimer_alignement(algn_2);
     return algn_1;

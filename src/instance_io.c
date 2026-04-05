@@ -23,6 +23,14 @@ static int is_genome_char(int c) {
     return c == 'A' || c == 'C' || c == 'T' || c == 'G';
 }
 
+static int has_adn_extension(const char* name) {
+    size_t len = strlen(name);
+    if (len < 4) {
+        return 0;
+    }
+    return strcmp(name + len - 4, ".adn") == 0;
+}
+
 static int read_sequence(FILE* f, char* out, int expected_len) {
     int count = 0;
     while (count < expected_len) {
@@ -138,6 +146,9 @@ txtFile* read_all_Fnam(const char* Dir_name, int mx) {
         if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
             continue;
         }
+        if (!has_adn_extension(data.cFileName)) {
+            continue;
+        }
 
         txtFile* f = (txtFile*)malloc(sizeof(txtFile));
         if (f == NULL) {
@@ -167,6 +178,9 @@ txtFile* read_all_Fnam(const char* Dir_name, int mx) {
     struct dirent* file = NULL;
     while (i < mx && (file = readdir(rep)) != NULL) {
         if (strcmp(file->d_name, ".") == 0 || strcmp(file->d_name, "..") == 0) {
+            continue;
+        }
+        if (!has_adn_extension(file->d_name)) {
             continue;
         }
 
