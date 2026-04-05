@@ -22,9 +22,11 @@ typedef struct AlignmentCosts {
     int substitution_non_concordant;
 } AlignmentCosts;
 
+/* Cost configuration */
 int alignment_set_costs(AlignmentCosts costs);
 AlignmentCosts alignment_get_costs(void);
 
+/* Legacy API */
 int lettres_concordantes(char a, char b);
 int cout_substitution(char a, char b);
 int min3(int a, int b, int c);
@@ -47,6 +49,16 @@ Align* SOL_2(char* x, char* y, int n, int m, int** Dist, int** I);
 Align* PROG_DYN_SOL2(duo_chaine* duo);
 
 int calcul_cout(Align* res);
+
+/* Readability aliases (same behavior, clearer naming) */
+int alignment_are_concordant(char a, char b);
+int alignment_substitution_cost(char a, char b);
+int alignment_distance_naive(char* x, char* y);
+int alignment_distance_full_dp(char* x, char* y, int** dp_matrix);
+int alignment_distance_linear_dp(char* x, char* y, int n, int m, int** dp_rows);
+Alignment* alignment_solve_full(SequencePair* pair);
+Alignment* alignment_solve_linear(SequencePair* pair);
+int alignment_compute_cost(Alignment* alignment);
 
 #endif
 

@@ -72,7 +72,7 @@ static void print_json_string(const char* s) {
     putchar('"');
 }
 
-static int alignment_matches_input(const Align* res, const duo_chaine* duo) {
+static int alignment_matches_input(const Alignment* res, const SequencePair* duo) {
     size_t xi = 0;
     size_t yi = 0;
 
@@ -94,56 +94,56 @@ static int alignment_matches_input(const Align* res, const duo_chaine* duo) {
     return duo->x[xi] == '\0' && duo->y[yi] == '\0';
 }
 
-static int solve_one(const char* input_path, const char* solver, int verify, Align** out_align, duo_chaine** out_duo, RunResult* out_result) {
-    duo_chaine* duo = lire_genome((char*)input_path);
-    if (duo == NULL) {
+static int solve_one(const char* input_path, const char* solver, int verify, Alignment** out_align, SequencePair** out_pair, RunResult* out_result) {
+    SequencePair* pair = read_genome_instance((char*)input_path);
+    if (pair == NULL) {
         return 0;
     }
 
     clock_t start = clock();
-    Align* align = NULL;
+    Alignment* alignment_result = NULL;
 
     if (strcmp(solver, "sol1") == 0) {
-        align = PROG_DYN(duo);
+        alignment_result = alignment_solve_full(pair);
     } else if (strcmp(solver, "sol2") == 0) {
-        align = PROG_DYN_SOL2(duo);
+        alignment_result = alignment_solve_linear(pair);
     } else {
         fprintf(stderr, "Unknown solver: %s\n", solver);
-        supprimer_duo_chaine(duo);
+        supprimer_duo_chaine(pair);
         return 0;
     }
 
     clock_t end = clock();
 
-    if (align == NULL) {
-        supprimer_duo_chaine(duo);
+    if (alignment_result == NULL) {
+        supprimer_duo_chaine(pair);
         return 0;
     }
 
     if (verify) {
-        if (!alignment_matches_input(align, duo)) {
+        if (!alignment_matches_input(alignment_result, pair)) {
             fprintf(stderr, "Verification failed: alignment does not match input sequences (%s)\n", input_path);
-            supprimer_alignement(align);
-            supprimer_duo_chaine(duo);
+            supprimer_alignement(alignment_result);
+            supprimer_duo_chaine(pair);
             return 0;
         }
-        if (calcul_cout(align) != align->dist) {
+        if (alignment_compute_cost(alignment_result) != alignment_result->dist) {
             fprintf(stderr, "Verification failed: alignment cost mismatch (%s)\n", input_path);
-            supprimer_alignement(align);
-            supprimer_duo_chaine(duo);
+            supprimer_alignement(alignment_result);
+            supprimer_duo_chaine(pair);
             return 0;
         }
     }
 
-    out_result->edit_distance = align->dist;
-    out_result->alignment_length = align->size;
+    out_result->edit_distance = alignment_result->dist;
+    out_result->alignment_length = alignment_result->size;
     out_result->runtime_seconds = (double)(end - start) / (double)CLOCKS_PER_SEC;
-    *out_align = align;
-    *out_duo = duo;
+    *out_align = alignment_result;
+    *out_pair = pair;
     return 1;
 }
 
-static void print_single_text(const char* input_path, const char* solver, const RunResult* result, const Align* align, int show_alignment) {
+static void print_single_text(const char* input_path, const char* solver, const RunResult* result, const Alignment* alignment_result, int show_alignment) {
     printf("Input              : %s\n", input_path);
     printf("Solver             : %s\n", solver);
     printf("Edit distance      : %d\n", result->edit_distance);
@@ -151,11 +151,11 @@ static void print_single_text(const char* input_path, const char* solver, const 
     printf("Runtime (seconds)  : %.6f\n", result->runtime_seconds);
 
     if (show_alignment) {
-        printf("\nAlignment:\n%s\n%s\n", align->x, align->y);
+        printf("\nAlignment:\n%s\n%s\n", alignment_result->x, alignment_result->y);
     }
 }
 
-static void print_single_json(const char* input_path, const char* solver, const RunResult* result, const Align* align, int show_alignment) {
+static void print_single_json(const char* input_path, const char* solver, const RunResult* result, const Alignment* alignment_result, int show_alignment) {
     printf("{");
     printf("\"input\":");
     print_json_string(input_path);
@@ -166,9 +166,9 @@ static void print_single_json(const char* input_path, const char* solver, const 
     printf(",\"runtime_seconds\":%.6f", result->runtime_seconds);
     if (show_alignment) {
         printf(",\"alignment_x\":");
-        print_json_string(align->x);
+        print_json_string(alignment_result->x);
         printf(",\"alignment_y\":");
-        print_json_string(align->y);
+        print_json_string(alignment_result->y);
     }
     printf("}\n");
 }
@@ -244,22 +244,22 @@ int main(int argc, char** argv) {
     }
 
     if (opts.input_path != NULL) {
-        Align* align = NULL;
-        duo_chaine* duo = NULL;
+        Alignment* alignment_result = NULL;
+        SequencePair* pair = NULL;
         RunResult result;
 
-        if (!solve_one(opts.input_path, opts.solver, opts.verify, &align, &duo, &result)) {
+        if (!solve_one(opts.input_path, opts.solver, opts.verify, &alignment_result, &pair, &result)) {
             return 1;
         }
 
         if (opts.json_output) {
-            print_single_json(opts.input_path, opts.solver, &result, align, opts.show_alignment);
+            print_single_json(opts.input_path, opts.solver, &result, alignment_result, opts.show_alignment);
         } else {
-            print_single_text(opts.input_path, opts.solver, &result, align, opts.show_alignment);
+            print_single_text(opts.input_path, opts.solver, &result, alignment_result, opts.show_alignment);
         }
 
-        supprimer_alignement(align);
-        supprimer_duo_chaine(duo);
+        supprimer_alignement(alignment_result);
+        supprimer_duo_chaine(pair);
         return 0;
     }
 
@@ -273,15 +273,15 @@ int main(int argc, char** argv) {
         fprintf(csv_file, "instance,solver,edit_distance,alignment_length,runtime_seconds\n");
     }
 
-    txtFile* list = read_all_Fnam(opts.batch_dir, 1000000);
-    if (list == NULL) {
+    FileEntry* entries = read_instance_directory(opts.batch_dir, 1000000);
+    if (entries == NULL) {
         fprintf(stderr, "Cannot read batch directory or no .adn files found: %s\n", opts.batch_dir);
         if (csv_file != NULL) {
             fclose(csv_file);
         }
         return 1;
     }
-    txtFile* current = list;
+    FileEntry* current = entries;
 
     int success_count = 0;
     int failed_count = 0;
@@ -291,11 +291,11 @@ int main(int argc, char** argv) {
         char path[512];
         snprintf(path, sizeof(path), "%s/%s", opts.batch_dir, current->Fname);
 
-        Align* align = NULL;
-        duo_chaine* duo = NULL;
+        Alignment* alignment_result = NULL;
+        SequencePair* pair = NULL;
         RunResult result;
 
-        if (solve_one(path, opts.solver, opts.verify, &align, &duo, &result)) {
+        if (solve_one(path, opts.solver, opts.verify, &alignment_result, &pair, &result)) {
             ++success_count;
             total_runtime += result.runtime_seconds;
 
@@ -304,14 +304,14 @@ int main(int argc, char** argv) {
             }
 
             if (opts.json_output) {
-                print_single_json(path, opts.solver, &result, align, 0);
+                print_single_json(path, opts.solver, &result, alignment_result, 0);
             } else {
-                print_single_text(path, opts.solver, &result, align, 0);
+                print_single_text(path, opts.solver, &result, alignment_result, 0);
                 printf("\n");
             }
 
-            supprimer_alignement(align);
-            supprimer_duo_chaine(duo);
+            supprimer_alignement(alignment_result);
+            supprimer_duo_chaine(pair);
         } else {
             ++failed_count;
             if (!opts.json_output) {
@@ -345,6 +345,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    delete_List_Files(list);
+    free_file_entries(entries);
     return failed_count == 0 ? 0 : 1;
 }
+

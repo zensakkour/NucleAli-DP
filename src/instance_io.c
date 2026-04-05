@@ -233,3 +233,23 @@ long double get_memory_usage() {
 #endif
 }
 
+SequencePair* read_genome_instance(char* file_name) {
+    return lire_genome(file_name);
+}
+
+int read_instance_length_from_name(char* name_f) {
+    return read_len_max(name_f);
+}
+
+void add_file_entry_sorted(FileEntry** list, FileEntry* entry) {
+    add_LF((txtFile**)list, (txtFile*)entry);
+}
+
+FileEntry* read_instance_directory(const char* dir_name, int max_files) {
+    return (FileEntry*)read_all_Fnam(dir_name, max_files);
+}
+
+void free_file_entries(FileEntry* list) {
+    delete_List_Files((txtFile*)list);
+}
+

@@ -588,4 +588,36 @@ int calcul_cout(Align* res) {
     return cout;
 }
 
+int alignment_are_concordant(char a, char b) {
+    return lettres_concordantes(a, b);
+}
+
+int alignment_substitution_cost(char a, char b) {
+    return cout_substitution(a, b);
+}
+
+int alignment_distance_naive(char* x, char* y) {
+    return dist_naif(x, y);
+}
+
+int alignment_distance_full_dp(char* x, char* y, int** dp_matrix) {
+    return dist_1(x, y, dp_matrix);
+}
+
+int alignment_distance_linear_dp(char* x, char* y, int n, int m, int** dp_rows) {
+    return Dist_2(x, y, n, m, dp_rows);
+}
+
+Alignment* alignment_solve_full(SequencePair* pair) {
+    return PROG_DYN(pair);
+}
+
+Alignment* alignment_solve_linear(SequencePair* pair) {
+    return PROG_DYN_SOL2(pair);
+}
+
+int alignment_compute_cost(Alignment* alignment) {
+    return calcul_cout(alignment);
+}
+
 

@@ -11,6 +11,7 @@ typedef struct _duo_chaine {
     int n;
     int m;
 } duo_chaine;
+typedef duo_chaine SequencePair;
 
 duo_chaine* creer_duo_chaine(char* x, char* y, int n, int m);
 void supprimer_duo_chaine(duo_chaine* duo);
@@ -23,6 +24,7 @@ typedef struct _Align {
     int dist;
     int iter;
 } Align;
+typedef Align Alignment;
 
 Align* creer_alignement(int n, int m);
 void supprimer_alignement(Align* algn);
